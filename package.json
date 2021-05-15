@@ -1,0 +1,29 @@
+{
+  "name": "blitz_chat_signaler",
+  "version": "0.0.1",
+  "description": "Signaler server for BlitzChat app using SocketIO",
+  "main": "dist/index.js",
+  "author": "Gabe Campbell",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "nodemon",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.11",
+    "@types/node": "^15.3.0",
+    "@types/socket.io": "2",
+    "dotenv": "^9.0.2",
+    "nodemon": "^2.0.7",
+    "ts-node": "^9.1.1",
+    "tsc": "^2.0.3",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "express": "^4.17.1",
+    "socket.io": "2"
+  }
+}
