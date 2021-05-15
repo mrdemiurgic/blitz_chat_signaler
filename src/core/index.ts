@@ -1,5 +1,5 @@
 import IO from "socket.io";
-import { getUsersInSameRoom, getRoomName } from "../utils/socketio";
+import { getPeersInSameRoom, getRoomName } from "../utils/socketio";
 import { ICEConfig, fetchICEConfig } from "../utils/xirsys";
 
 import * as T from "./types";
@@ -17,10 +17,6 @@ export const establishListeners = (socket: IO.Socket) => {
   socket.on("disconnect", function () {
     console.log(`User disconnected: ${socket.id}`);
   });
-
-  socket.on("disconnected", function () {
-    console.log(`User disconnected: ${socket.id}`);
-  });
 };
 
 /**
@@ -28,14 +24,14 @@ export const establishListeners = (socket: IO.Socket) => {
  *
  * join -> { roomName: string }
  *
- * It joins the room and checks for existing users in the room. Emits event "info" back to peer:
+ * It joins the room and checks for existing peers in the room. Emits event "info" back to peer:
  *
- * welcome -> { iceConfig: ICEConfig, users: string[], yourId: string }
+ * welcome -> { iceConfig: ICEConfig, peers: string[], yourId: string }
  *
  * ICEConfig is used to authenicate the peer with the XIRSYS STUN/TURN server.
  * It contains a temporary token that is only valid for 30 seconds.
  *
- * If the limit of users per room is reached, the server will instead emit:
+ * If the limit of peers per room is reached, the server will instead emit:
  *
  * "error" -> { message: "the room is full" }
  *
@@ -45,12 +41,12 @@ const onJoin = (socket: IO.Socket) => {
     const yourId = socket.id;
     console.log(`${yourId} joining ${roomName}...`);
     socket.join(roomName, async () => {
-      const users = getUsersInSameRoom(socket);
-      if (users.length < LIMIT) {
-        const iceConfig = users.length > 0 ? await fetchICEConfig() : undefined;
+      const peers = getPeersInSameRoom(socket);
+      if (peers.length < LIMIT) {
+        const iceConfig = peers.length > 0 ? await fetchICEConfig() : undefined;
         socket.emit(
           "welcome" as T.Event,
-          { iceConfig, users, yourId } as T.Welcome
+          { iceConfig, peers, yourId } as T.Welcome
         );
         console.log(`${yourId} joined ${roomName}!`);
       } else {
@@ -65,7 +61,7 @@ const onJoin = (socket: IO.Socket) => {
 };
 
 /**
- * The new peer receives the "welcome" event from server and evaluates the users array.
+ * The new peer receives the "welcome" event from server and evaluates the peers array.
  *
  * If it is empty, do nothing.
  *

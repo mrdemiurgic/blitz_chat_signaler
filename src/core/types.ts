@@ -16,7 +16,7 @@ export interface Join {
 export interface Welcome {
   iceConfig?: ICEConfig;
   yourId: string;
-  users: string[];
+  peers: string[];
 }
 
 export interface NewPeer {
