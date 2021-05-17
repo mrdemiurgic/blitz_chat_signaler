@@ -14,6 +14,10 @@ export const establishListeners = (socket: IO.Socket) => {
   onCandidate(socket);
   onSDP(socket);
 
+  socket.on("disconnecting", function () {
+    console.log(`User disconnecting: ${socket.id}`);
+  });
+
   socket.on("disconnect", function () {
     console.log(`User disconnected: ${socket.id}`);
   });
@@ -24,7 +28,7 @@ export const establishListeners = (socket: IO.Socket) => {
  *
  * join -> { roomName: string }
  *
- * It joins the room and checks for existing peers in the room. Emits event "info" back to peer:
+ * It joins the room and checks for existing peers in the room. Emits event "welcome" back to peer:
  *
  * welcome -> { iceConfig: ICEConfig, peers: string[], yourId: string }
  *
@@ -33,14 +37,16 @@ export const establishListeners = (socket: IO.Socket) => {
  *
  * If the limit of peers per room is reached, the server will instead emit:
  *
- * "error" -> { message: "the room is full" }
+ * blitzError -> { message: "the room is full" }
  *
  */
 const onJoin = (socket: IO.Socket) => {
   socket.on("join" as T.Event, ({ roomName }: T.Join) => {
     const yourId = socket.id;
     console.log(`${yourId} joining ${roomName}...`);
-    socket.join(roomName, async () => {
+    socket.join(roomName, async (err) => {
+      if (err) throw err;
+
       const peers = getPeersInSameRoom(socket);
       if (peers.length < LIMIT) {
         const iceConfig = peers.length > 0 ? await fetchICEConfig() : undefined;
@@ -51,9 +57,10 @@ const onJoin = (socket: IO.Socket) => {
         console.log(`${yourId} joined ${roomName}!`);
       } else {
         socket.emit(
-          "error" as T.Event,
+          "blitzError" as T.Event,
           { message: "the room is full" } as T.Error
         );
+        console.log(`Room is full. ${yourId} turned away.`);
         socket.leave(roomName);
       }
     });
@@ -94,7 +101,7 @@ const onSDP = (socket: IO.Socket) => {
 };
 
 const onCandidate = (socket: IO.Socket) => {
-  socket.on("candidate" as T.Event, (data: T.IceCandidate) => {
-    socket.to(data.to).emit("candidate" as T.Event, data as T.IceCandidate);
+  socket.on("iceCandidate" as T.Event, (data: T.IceCandidate) => {
+    socket.to(data.to).emit("iceCandidate" as T.Event, data as T.IceCandidate);
   });
 };

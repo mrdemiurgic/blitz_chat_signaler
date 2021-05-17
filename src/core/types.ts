@@ -6,8 +6,8 @@ export type Event =
   | "ready"
   | "newPeer"
   | "sdp"
-  | "candidate"
-  | "error";
+  | "iceCandidate"
+  | "blitzError";
 
 export interface Join {
   roomName: string;
