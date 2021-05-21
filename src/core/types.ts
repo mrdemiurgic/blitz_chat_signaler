@@ -7,6 +7,8 @@ export type Event =
   | "newPeer"
   | "sdp"
   | "iceCandidate"
+  | "leave"
+  | "byePeer"
   | "blitzError";
 
 export interface Join {
@@ -14,13 +16,18 @@ export interface Join {
 }
 
 export interface Welcome {
-  iceConfig?: ICEConfig;
+  roomName: string;
   yourId: string;
   peers: string[];
+  iceConfig?: ICEConfig;
 }
 
 export interface NewPeer {
   iceConfig: ICEConfig;
+  id: string;
+}
+
+export interface ByePeer {
   id: string;
 }
 
