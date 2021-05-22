@@ -60,6 +60,7 @@ const onJoin = (socket: IO.Socket) => {
       if (err) throw err;
 
       const peers = getPeersInSameRoom(socket);
+      console.log(peers);
       if (peers.length < LIMIT) {
         const iceConfig = peers.length > 0 ? await fetchICEConfig() : undefined;
         socket.emit(

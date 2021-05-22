@@ -9,6 +9,7 @@ export type Event =
   | "iceCandidate"
   | "leave"
   | "byePeer"
+  | "bye"
   | "blitzError";
 
 export interface Join {
