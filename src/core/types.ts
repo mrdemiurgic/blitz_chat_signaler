@@ -32,18 +32,26 @@ export interface ByePeer {
   id: string;
 }
 
-export interface IceCandidate {
+export interface IncomingIceCandidate {
   to: string;
+  iceCandidate: RTCIceCandidate;
+}
+
+export interface OutgoingIceCandidate {
   from: string;
   iceCandidate: RTCIceCandidate;
 }
 
-export interface SDP {
+export interface IncomingSDP {
   to: string;
+  sdp: RTCSessionDescription;
+}
+
+export interface OutgoingSDP {
   from: string;
   sdp: RTCSessionDescription;
 }
 
-export interface Error {
+export interface BlitzError {
   message: string;
 }

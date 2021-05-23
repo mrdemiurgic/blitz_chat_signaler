@@ -71,7 +71,7 @@ const onJoin = (socket: IO.Socket) => {
       } else {
         socket.emit(
           "blitzError" as T.Event,
-          { message: "the room is full" } as T.Error
+          { message: "the room is full" } as T.BlitzError
         );
         console.log(`Room is full. Peer ${yourId} turned away.`);
         socket.leave(roomName);
@@ -102,7 +102,9 @@ const onReady = (socket: IO.Socket) => {
     const room = getRoomName(socket);
     if (room !== undefined) {
       const iceConfig = await fetchICEConfig();
-      socket.to(room).emit("newPeer" as T.Event, { iceConfig, id: socket.id });
+      socket
+        .to(room)
+        .emit("newPeer" as T.Event, { iceConfig, id: socket.id } as T.NewPeer);
     }
   });
 };
@@ -117,15 +119,25 @@ const onReady = (socket: IO.Socket) => {
  *
  */
 const onSDP = (socket: IO.Socket) => {
-  socket.on("sdp" as T.Event, (data: T.SDP) => {
-    socket.to(data.to).emit("sdp" as T.Event, data as T.SDP);
+  socket.on("sdp" as T.Event, ({ sdp, to }: T.IncomingSDP) => {
+    socket
+      .to(to)
+      .emit("sdp" as T.Event, { sdp, from: socket.id } as T.OutgoingSDP);
   });
 };
 
 const onCandidate = (socket: IO.Socket) => {
-  socket.on("iceCandidate" as T.Event, (data: T.IceCandidate) => {
-    socket.to(data.to).emit("iceCandidate" as T.Event, data as T.IceCandidate);
-  });
+  socket.on(
+    "iceCandidate" as T.Event,
+    ({ iceCandidate, to }: T.IncomingIceCandidate) => {
+      socket
+        .to(to)
+        .emit(
+          "iceCandidate" as T.Event,
+          { iceCandidate, from: socket.id } as T.OutgoingIceCandidate
+        );
+    }
+  );
 };
 
 /**
@@ -161,8 +173,10 @@ const peerLeaving = (socket: IO.Socket) => {
   if (roomName !== undefined) {
     console.log(`Peer ${socket.id} leaving ${roomName}.`);
     socket.leave(roomName, () => {
-      socket.emit("bye");
-      socket.to(roomName).emit("byePeer" as T.Event, { id: socket.id });
+      socket.emit("bye" as T.Event);
+      socket
+        .to(roomName)
+        .emit("byePeer" as T.Event, { id: socket.id } as T.ByePeer);
     });
   }
 };
