@@ -39,7 +39,7 @@ export const establishListeners = (socket: IO.Socket) => {
  *
  * It joins the room and checks for existing peers in the room. Emits event "welcome" back to peer:
  *
- * welcome -> { iceConfig: ICEConfig, peers: string[], yourId: string }
+ * welcome -> { iceConfig: ICEConfig, peers: string[], selfId: string }
  *
  * ICE configuration is used to authenicate the peer with the XIRSYS STUN/TURN server.
  * It contains a temporary token that is only valid for 30 seconds. If the new
@@ -53,27 +53,32 @@ export const establishListeners = (socket: IO.Socket) => {
  *
  */
 const onJoin = (socket: IO.Socket) => {
-  socket.on("join" as T.Event, ({ roomName }: T.Join) => {
-    const yourId = socket.id;
-    console.log(`Peer ${yourId} joining ${roomName}...`);
+  socket.on("join" as T.OnEvent, ({ roomName }: T.Join) => {
+    const selfId = socket.id;
+    console.log(`Peer ${selfId} joining ${roomName}...`);
     socket.join(roomName, async (err) => {
-      if (err) throw err;
-
+      if (err) {
+        console.error(`Cannot join room. SocketIO: ${err}. Peer: ${selfId}`);
+        socket.emit(
+          "blitzError" as T.EmitEvent,
+          { message: "cannot join room" } as T.BlitzError
+        );
+        return;
+      }
       const peers = getPeersInSameRoom(socket);
-      console.log(peers);
       if (peers.length < LIMIT) {
         const iceConfig = peers.length > 0 ? await fetchICEConfig() : undefined;
         socket.emit(
-          "welcome" as T.Event,
-          { roomName, iceConfig, peers, yourId } as T.Welcome
+          "welcome" as T.EmitEvent,
+          { roomName, iceConfig, peers } as T.Welcome
         );
-        console.log(`Peer ${yourId} joined ${roomName}!`);
+        console.log(`Peer ${selfId} joined ${roomName}!`);
       } else {
         socket.emit(
-          "blitzError" as T.Event,
-          { message: "the room is full" } as T.BlitzError
+          "blitzError" as T.EmitEvent,
+          { message: "room is full" } as T.BlitzError
         );
-        console.log(`Room is full. Peer ${yourId} turned away.`);
+        console.log(`Room is full. Peer ${selfId} turned away.`);
         socket.leave(roomName);
       }
     });
@@ -98,13 +103,16 @@ const onJoin = (socket: IO.Socket) => {
  *
  */
 const onReady = (socket: IO.Socket) => {
-  socket.on("ready" as T.Event, async () => {
+  socket.on("ready" as T.OnEvent, async () => {
     const room = getRoomName(socket);
     if (room !== undefined) {
       const iceConfig = await fetchICEConfig();
       socket
         .to(room)
-        .emit("newPeer" as T.Event, { iceConfig, id: socket.id } as T.NewPeer);
+        .emit(
+          "newPeer" as T.EmitEvent,
+          { iceConfig, id: socket.id } as T.NewPeer
+        );
     }
   });
 };
@@ -119,21 +127,21 @@ const onReady = (socket: IO.Socket) => {
  *
  */
 const onSDP = (socket: IO.Socket) => {
-  socket.on("sdp" as T.Event, ({ sdp, to }: T.IncomingSDP) => {
+  socket.on("sdp" as T.OnEvent, ({ sdp, to }: T.IncomingSDP) => {
     socket
       .to(to)
-      .emit("sdp" as T.Event, { sdp, from: socket.id } as T.OutgoingSDP);
+      .emit("sdp" as T.EmitEvent, { sdp, from: socket.id } as T.OutgoingSDP);
   });
 };
 
 const onCandidate = (socket: IO.Socket) => {
   socket.on(
-    "iceCandidate" as T.Event,
+    "iceCandidate" as T.OnEvent,
     ({ iceCandidate, to }: T.IncomingIceCandidate) => {
       socket
         .to(to)
         .emit(
-          "iceCandidate" as T.Event,
+          "iceCandidate" as T.EmitEvent,
           { iceCandidate, from: socket.id } as T.OutgoingIceCandidate
         );
     }
@@ -156,7 +164,7 @@ const onCandidate = (socket: IO.Socket) => {
  *
  */
 const onLeave = (socket: IO.Socket) => {
-  socket.on("leave" as T.Event, () => {
+  socket.on("leave" as T.OnEvent, () => {
     peerLeaving(socket);
   });
 };
@@ -172,11 +180,20 @@ const peerLeaving = (socket: IO.Socket) => {
   const roomName = getRoomName(socket);
   if (roomName !== undefined) {
     console.log(`Peer ${socket.id} leaving ${roomName}.`);
-    socket.leave(roomName, () => {
-      socket.emit("bye" as T.Event);
+    socket.leave(roomName, (err) => {
+      if (err) {
+        console.error(`Cannot leave room. SocketIO: ${err}. Peer: ${selfId}`);
+        socket.emit(
+          "blitzError" as T.EmitEvent,
+          { message: "cannot leave room" } as T.BlitzError
+        );
+        return;
+      }
+
+      socket.emit("bye" as T.EmitEvent);
       socket
         .to(roomName)
-        .emit("byePeer" as T.Event, { id: socket.id } as T.ByePeer);
+        .emit("byePeer" as T.EmitEvent, { id: socket.id } as T.ByePeer);
     });
   }
 };
