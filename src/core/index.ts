@@ -56,10 +56,10 @@ const onJoin = (socket: IO.Socket) => {
   socket.on("join" as T.OnEvent, ({ roomName }: T.Join) => {
     const selfId = socket.id;
     console.log(`Peer ${selfId} joining ${roomName}...`);
-    socket.join(roomName, async (err) => {
+    socket.join(roomName, async (err: any) => {
       if (err) {
         console.error(`Cannot join room. SocketIO: ${err}. Peer: ${selfId}`);
-        emitError("cannot join room");
+        emitError(socket, "cannot join room");
         return;
       }
       const peers = getPeersInSameRoom(socket);
@@ -71,7 +71,7 @@ const onJoin = (socket: IO.Socket) => {
         );
         console.log(`Peer ${selfId} joined ${roomName}!`);
       } else {
-        emitError("room is full");
+        emitError(socket, "room is full");
         console.log(`Room is full. Peer ${selfId} turned away.`);
         socket.leave(roomName);
       }
@@ -174,10 +174,12 @@ const peerLeaving = (socket: IO.Socket) => {
   const roomName = getRoomName(socket);
   if (roomName !== undefined) {
     console.log(`Peer ${socket.id} leaving ${roomName}.`);
-    socket.leave(roomName, (err) => {
+    socket.leave(roomName, (err: any) => {
       if (err) {
-        console.error(`Cannot leave room. SocketIO: ${err}. Peer: ${selfId}`);
-        emitError("cannot leave room");
+        console.error(
+          `Cannot leave room. SocketIO: ${err}. Peer: ${socket.id}`
+        );
+        emitError(socket, "cannot leave room");
         return;
       }
 
@@ -189,6 +191,6 @@ const peerLeaving = (socket: IO.Socket) => {
   }
 };
 
-const emitError = (message: string) => {
+const emitError = (socket: IO.Socket, message: string) => {
   socket.emit("blitzError" as T.EmitEvent, { message } as T.BlitzError);
 };
