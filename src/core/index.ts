@@ -59,10 +59,7 @@ const onJoin = (socket: IO.Socket) => {
     socket.join(roomName, async (err) => {
       if (err) {
         console.error(`Cannot join room. SocketIO: ${err}. Peer: ${selfId}`);
-        socket.emit(
-          "blitzError" as T.EmitEvent,
-          { message: "cannot join room" } as T.BlitzError
-        );
+        emitError("cannot join room");
         return;
       }
       const peers = getPeersInSameRoom(socket);
@@ -74,10 +71,7 @@ const onJoin = (socket: IO.Socket) => {
         );
         console.log(`Peer ${selfId} joined ${roomName}!`);
       } else {
-        socket.emit(
-          "blitzError" as T.EmitEvent,
-          { message: "room is full" } as T.BlitzError
-        );
+        emitError("room is full");
         console.log(`Room is full. Peer ${selfId} turned away.`);
         socket.leave(roomName);
       }
@@ -183,10 +177,7 @@ const peerLeaving = (socket: IO.Socket) => {
     socket.leave(roomName, (err) => {
       if (err) {
         console.error(`Cannot leave room. SocketIO: ${err}. Peer: ${selfId}`);
-        socket.emit(
-          "blitzError" as T.EmitEvent,
-          { message: "cannot leave room" } as T.BlitzError
-        );
+        emitError("cannot leave room");
         return;
       }
 
@@ -196,4 +187,8 @@ const peerLeaving = (socket: IO.Socket) => {
         .emit("byePeer" as T.EmitEvent, { id: socket.id } as T.ByePeer);
     });
   }
+};
+
+const emitError = (message: string) => {
+  socket.emit("blitzError" as T.EmitEvent, { message } as T.BlitzError);
 };
