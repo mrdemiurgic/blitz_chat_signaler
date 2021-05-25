@@ -20,7 +20,8 @@ interface XIRSYSResponse {
 export const fetchICEConfig = async () => {
   const response = await axios.put<XIRSYSResponse>(
     process.env.XIRSYS_URL || "",
-    { format: "urls" },
+    // { format: "urls" },
+    undefined,
     {
       headers: {
         Authorization: `Basic ${Buffer.from(

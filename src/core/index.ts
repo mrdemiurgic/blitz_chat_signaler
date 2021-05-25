@@ -98,6 +98,7 @@ const onJoin = (socket: IO.Socket) => {
  */
 const onReady = (socket: IO.Socket) => {
   socket.on("ready" as T.OnEvent, async () => {
+    console.log(`Peer ${socket.id} is ready!`);
     const room = getRoomName(socket);
     if (room !== undefined) {
       const iceConfig = await fetchICEConfig();
@@ -122,6 +123,7 @@ const onReady = (socket: IO.Socket) => {
  */
 const onSDP = (socket: IO.Socket) => {
   socket.on("sdp" as T.OnEvent, ({ sdp, to }: T.IncomingSDP) => {
+    console.log(`sdp exchange - type: ${sdp.type} ${socket.id} -> ${to}`);
     socket
       .to(to)
       .emit("sdp" as T.EmitEvent, { sdp, from: socket.id } as T.OutgoingSDP);
@@ -132,6 +134,7 @@ const onCandidate = (socket: IO.Socket) => {
   socket.on(
     "iceCandidate" as T.OnEvent,
     ({ iceCandidate, to }: T.IncomingIceCandidate) => {
+      console.log(`iceCandidate exchange - ${socket.id} -> ${to}`);
       socket
         .to(to)
         .emit(
