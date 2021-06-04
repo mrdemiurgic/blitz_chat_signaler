@@ -6,6 +6,7 @@ import checkEnvs from "./utils/envs";
 import { establishListeners } from "./core";
 
 checkEnvs();
+const PORT = process.env.PORT || 3003;
 
 const app = express();
 
@@ -17,4 +18,6 @@ const server = new Server(app);
 const io = IO(server, { pingTimeout: 7500, pingInterval: 3000 });
 
 io.on("connection", establishListeners);
-server.listen(process.env.PORT || 3003);
+server.listen(PORT, () => {
+  console.log(`Blitz Chat Signaler Server is listening on port ${PORT}`);
+});

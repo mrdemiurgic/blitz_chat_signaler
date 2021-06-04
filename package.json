@@ -10,6 +10,7 @@
     "build": "tsc",
     "dev": "nodemon",
     "clean": "rm -rf dist",
+    "loadenv": "set -o allexport; source .env; set +o allexport",
     "start": "node dist/index.js"
   },
   "devDependencies": {
