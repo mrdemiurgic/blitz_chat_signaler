@@ -10,9 +10,9 @@ export const establishListeners = (socket: IO.Socket) => {
   console.log(`Peer connected: ${socket.id}`);
 
   onJoin(socket);
-  onReady(socket);
-  onCandidate(socket);
+  // onReady(socket);
   onSDP(socket);
+  onCandidate(socket);
   onLeave(socket);
   onDisconnecting(socket);
 };
@@ -96,21 +96,21 @@ const onJoin = (socket: IO.Socket) => {
  * newPeer -> {iceConfig: ICEConfig, id: string}
  *
  */
-const onReady = (socket: IO.Socket) => {
-  socket.on("ready" as T.OnEvent, async () => {
-    console.log(`Peer ${socket.id} is ready!`);
-    const room = getRoomName(socket);
-    if (room !== undefined) {
-      const iceConfig = await fetchICEConfig();
-      socket
-        .to(room)
-        .emit(
-          "newPeer" as T.EmitEvent,
-          { iceConfig, id: socket.id } as T.NewPeer
-        );
-    }
-  });
-};
+// const onReady = (socket: IO.Socket) => {
+//   socket.on("ready" as T.OnEvent, async () => {
+//     console.log(`Peer ${socket.id} is ready!`);
+//     const room = getRoomName(socket);
+//     if (room !== undefined) {
+//       const iceConfig = await fetchICEConfig();
+//       socket
+//         .to(room)
+//         .emit(
+//           "newPeer" as T.EmitEvent,
+//           { iceConfig, id: socket.id } as T.NewPeer
+//         );
+//     }
+//   });
+// };
 
 /**
  * "sdp" and "iceCandidate" are used for negotiating webRTC peer connections.
@@ -122,11 +122,16 @@ const onReady = (socket: IO.Socket) => {
  *
  */
 const onSDP = (socket: IO.Socket) => {
-  socket.on("sdp" as T.OnEvent, ({ sdp, to }: T.IncomingSDP) => {
+  socket.on("sdp" as T.OnEvent, async ({ sdp, to }: T.IncomingSDP) => {
     console.log(`sdp exchange - type: ${sdp.type} ${socket.id} -> ${to}`);
-    socket
-      .to(to)
-      .emit("sdp" as T.EmitEvent, { sdp, from: socket.id } as T.OutgoingSDP);
+
+    const data = {
+      sdp,
+      from: socket.id,
+      iceConfig: sdp.type === "offer" ? await fetchICEConfig() : undefined,
+    };
+
+    socket.to(to).emit("sdp" as T.EmitEvent, data as T.OutgoingSDP);
   });
 };
 

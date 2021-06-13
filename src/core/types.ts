@@ -44,6 +44,7 @@ export interface OutgoingIceCandidate extends IceCandidate {
 
 interface SDP {
   sdp: RTCSessionDescription;
+  iceConfig?: ICEConfig;
 }
 
 export interface IncomingSDP extends SDP {
