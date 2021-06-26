@@ -53,29 +53,34 @@ export const establishListeners = (socket: IO.Socket) => {
  *
  */
 const onJoin = (socket: IO.Socket) => {
-  socket.on("join" as T.OnEvent, ({ roomName }: T.Join) => {
+  socket.on("join" as T.OnEvent, async ({ roomName }: T.Join) => {
     const selfId = socket.id;
-    console.log(`Peer ${selfId} joining ${roomName}...`);
-    socket.join(roomName, async (err: any) => {
-      if (err) {
-        console.error(`Cannot join room. SocketIO: ${err}. Peer: ${selfId}`);
-        emitError(socket, "cannot join room");
-        return;
-      }
-      const peers = getPeersInSameRoom(socket);
-      if (peers.length < LIMIT) {
-        const iceConfig = peers.length > 0 ? await fetchICEConfig() : undefined;
-        socket.emit(
-          "welcome" as T.EmitEvent,
-          { roomName, iceConfig, peers } as T.Welcome
-        );
-        console.log(`Peer ${selfId} joined ${roomName}!`);
-      } else {
-        emitError(socket, "room is full");
-        console.log(`Room is full. Peer ${selfId} turned away.`);
-        socket.leave(roomName);
-      }
-    });
+
+    const left = await leaveRoomIfJoined(socket);
+
+    if (left) {
+      socket.join(roomName, async (err: any) => {
+        if (err) {
+          console.error(`Cannot join room. SocketIO: ${err}. Peer: ${selfId}`);
+          emitError(socket, "cannot join room");
+          return;
+        }
+        const peers = getPeersInSameRoom(socket);
+        if (peers.length < LIMIT) {
+          const iceConfig =
+            peers.length > 0 ? await fetchICEConfig() : undefined;
+          socket.emit(
+            "welcome" as T.EmitEvent,
+            { roomName, iceConfig, peers } as T.Welcome
+          );
+          console.log(`Peer ${selfId} joined ${roomName}!`);
+        } else {
+          emitError(socket, "room is full");
+          console.log(`Room is full. Peer ${selfId} turned away.`);
+          socket.leave(roomName);
+        }
+      });
+    }
   });
 };
 
@@ -178,24 +183,37 @@ const onDisconnecting = (socket: IO.Socket) => {
   });
 };
 
-const peerLeaving = (socket: IO.Socket) => {
-  const roomName = getRoomName(socket);
-  if (roomName !== undefined) {
-    console.log(`Peer ${socket.id} leaving ${roomName}.`);
-    socket.leave(roomName, (err: any) => {
-      if (err) {
-        console.error(
-          `Cannot leave room. SocketIO: ${err}. Peer: ${socket.id}`
-        );
-        emitError(socket, "cannot leave room");
-        return;
-      }
+const leaveRoomIfJoined = async (socket: IO.Socket): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    const roomName = getRoomName(socket);
+    if (roomName !== undefined) {
+      console.log(`Peer ${socket.id} leaving ${roomName}.`);
+      socket.leave(roomName, (err: any) => {
+        if (err) {
+          console.error(
+            `Cannot leave room. SocketIO: ${err}. Peer: ${socket.id}`
+          );
+          emitError(socket, "cannot leave room");
+          resolve(false);
+          return;
+        }
 
-      socket.emit("bye" as T.EmitEvent);
-      socket
-        .to(roomName)
-        .emit("byePeer" as T.EmitEvent, { id: socket.id } as T.ByePeer);
-    });
+        socket
+          .to(roomName)
+          .emit("byePeer" as T.EmitEvent, { id: socket.id } as T.ByePeer);
+
+        resolve(true);
+      });
+    } else {
+      resolve(true);
+    }
+  });
+};
+
+const peerLeaving = async (socket: IO.Socket) => {
+  const left = await leaveRoomIfJoined(socket);
+  if (left) {
+    socket.emit("bye" as T.EmitEvent);
   }
 };
 
