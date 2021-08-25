@@ -39,8 +39,8 @@ const googleStun: ICEConfig = {
 export const fetchICEConfig = async () => {
   const response = await axios.put<XIRSYSResponse>(
     process.env.XIRSYS_URL || "",
-    // undefined,
-    { format: "urls" },
+    undefined,
+    // { format: "urls" },
     {
       headers: {
         Authorization: `Basic ${Buffer.from(
